@@ -1,0 +1,598 @@
+document.addEventListener("DOMContentLoaded", () => { 
+
+    /**
+    * Controller class. Orchestrates the model and view objects. A "glue" between them.
+    *
+    * @param {View} view view instance.
+    * @param {Model} model model instance.
+    *
+    * @constructor
+    */
+    function Controller(view, model) {
+
+        var currentStore;
+        var currentProduct;
+        const storesList = document.querySelector(".stores-list");
+        const storesListBody = document.querySelector(".stores-list__body");
+        const storeLoupe = document.querySelector(".input-button__search");
+        const productLoupe = document.querySelector(".details-body__input-search");
+        const refreshStores = document.querySelector(".input-button__refresh");
+        const clearInput = document.querySelector(".input-button__clear");
+        const storesinput = document.querySelector(".stores-list__header-input");
+        const clearProductInput = document.querySelector(".details-body__input-clear");
+        const ProductInput = document.querySelector(".details-body__input");
+        const defaultWrapper = document.querySelector(".wrapper");
+        const storeDetails = document.querySelector(".details");
+        const createStoreForm = document.querySelector('.store-popup__form');
+        const editProductPopup = document.querySelector(".product-popup__edit-product");
+        const editProductForm = document.querySelector(".edit-product__form")
+        const deleteShopConfirmBtn = document.querySelector(".delete-shop__confirm-btn");
+        const productsPopupDeleteShop = document.querySelector(".products-popup__delete-shop");
+        const storePopupDeleteSuccessful = document.querySelector(".store-popup__delete-successful");
+        const popupDeleteProduct = document.querySelector(".products-popup__delete-product");
+        const popupDeleteProductSuccessful = document.querySelector(".product-popup__delete-successful");
+        const storePopupButtonCancel = document.querySelector(".store-popup__button-cancel");
+        const storePopup = document.querySelector(".store-popup");
+        const storesListFooterButton = document.querySelector(".stores-list__footer-button");
+        const detailsFooterButtonCreate = document.querySelector(".details-footer__button-create");
+        const productsPopup = document.querySelector(".products-popup");
+        const productsPopupButtonCancel = document.querySelector(".products-popup__button-cancel");
+        const errorMsg = document.querySelector(".error-msg");
+        const productsPopupForm = document.querySelector('.products-popup__form');
+        const detailsFooterButtonDelete = document.querySelector(".details-footer__button-delete");
+        const deleteShopCancelBtn = document.querySelector(".delete-shop__cancel-btn");
+        const deleteProductCancelBtn = document.querySelector(".delete-product__cancel-btn");
+        const editProductCancel = document.querySelector(".edit-product__button-cancel");
+        const productPopupEditSuccessful = document.querySelector(".product-popup__edit-successful");
+        const errorMsgButton = document.querySelector(".error-msg__button");
+        const deleteProductConfirmBtn = document.querySelector(".delete-product__confirm-btn")
+
+        /**
+	    * Initialize controller.
+	    *
+	    * @public
+	    */
+        this.init = function() {
+            model.getStoresApi().then(stores => view.renderStores(stores));
+        };
+
+        storesListBody.addEventListener("click", event => {
+            const choosedStore = event.target.closest(".stores-list__body-item");
+            currentStore = choosedStore;
+
+            view.chooseActiveStore(choosedStore);
+            view.renderTableHead(choosedStore);
+            this.renderProductCategory(choosedStore);
+    
+            model.getStoreById(+choosedStore.id)
+                .then(store => view.renderStoreDetails(store))
+                .then(() => model.getProductsApi(+choosedStore.id))
+                .then(products => {
+                    view.getCountOfProducts(products);
+                    view.renderTableBody(products)
+                })
+        });
+
+        deleteProductConfirmBtn.addEventListener("click", (event) =>{
+            event.preventDefault();
+            model.deleteStoreProduct(+currentProduct.id)
+            .then(() => model.getProductsApi(+currentStore.id))
+            .then(products => {
+                view.renderTableBody(products);
+                view.getCountOfProducts(products);
+            })
+            this.renderProductCategory(currentStore);
+        
+            popupDeleteProduct.classList.add("is-hidden");
+            popupDeleteProductSuccessful.classList.add("is-visible");
+            setTimeout(function() {
+                popupDeleteProductSuccessful.classList.remove("is-visible")
+            }, 3000);
+        });
+
+        /**
+	    * Render product categories for choosed store.
+	    *
+	    * @public
+	    */
+        this.renderProductCategory = async function(choosedStore) {
+            model.getProductStatusApi(+choosedStore.id, "OK").then(products => {
+                document.querySelector(".category-ok").addEventListener("click", () => view.renderTableBody(products));
+            })
+            model.getProductStatusApi(+choosedStore.id, "STORAGE")
+            .then(products => {
+                document.querySelector(".category-storage").addEventListener("click", () => view.renderTableBody(products));
+            })
+            model.getProductStatusApi(+choosedStore.id, "OUT_OF_STOCK")
+            .then(products => {
+                document.querySelector(".category-absent").addEventListener("click", () => view.renderTableBody(products));
+            })
+
+            model.getProductsApi(+currentStore.id)
+            .then(products => {
+                document.querySelector(".category-all").addEventListener("click", () => view.renderTableBody(products));
+            })
+        };
+
+        /**
+         * Delete the selected store and show a pop-up window with information that the store has been successfully deleted.
+         *
+         * @listens click
+         *
+         * @param {Event} event the DOM event object.
+         *
+         * @private
+         */
+        deleteShopConfirmBtn.addEventListener("click", async function(event){
+            event.preventDefault();
+            let deleteStorelist = await model.deleteStoreProducts(+currentStore.id);
+            let deleteStoreData = await model.deleteStore(+currentStore.id);
+            model.getStoresApi().then(stores => view.renderStores(stores) )
+        
+            storeDetails.classList.add("js-hidden");
+            defaultWrapper.classList.remove("js-hidden");
+            productsPopupDeleteShop.style.display = "none";
+            storePopupDeleteSuccessful.style.display = "block";
+            setTimeout(function() {
+                storePopupDeleteSuccessful.style.display = "none"
+            }, 3000);
+        });
+
+        /**
+         * Show a pop-up for adding a new store.
+         *
+         * @listens click
+         *
+         * @private
+         */
+        storesListFooterButton.addEventListener("click", function() {
+            storePopup.style.display = "block";
+        });
+
+        /**
+         * Create a new store and show a pop-up window about the successful creation of the selected store.
+         *
+         * @listens submit
+         *
+         * @param {Event} event the DOM event object.
+         *
+         * @private
+         */
+        createStoreForm.addEventListener("submit", event =>{
+            event.preventDefault();
+
+            const formInputs = createStoreForm.querySelectorAll('input');
+            const isValid = view.validateRequiredFields(formInputs);
+
+            if (isValid) {
+                model.addStoreApi()
+                    .then(() => model.getStoresApi())
+                    .then(stores => view.renderStores(stores));
+                    storePopup.style.display = "none";
+                    event.target.reset();
+            }else{
+                errorMsg.classList.add("is-visible");
+            }
+        });
+
+        /**
+         * Hide the pop-up window to create a store
+         *
+         * @listens click
+         *
+         * @private
+         */
+        storePopupButtonCancel.addEventListener("click", function() {
+            storePopup.style.display = "none";
+        });
+
+        /**
+         * Show the pop-up window to create a new product in the selected store.
+         *
+         * @listens click
+         *
+         * @private
+         */
+        detailsFooterButtonCreate.addEventListener("click", function() {
+            productsPopup.style.display = "block";
+        });
+        
+        /**
+         * Hide the pop-up window to create a new product in the selected store.
+         *
+         * @listens click
+         *
+         * @private
+         */
+        productsPopupButtonCancel.addEventListener("click", function() {
+            productsPopup.style.display = "none";
+        });
+
+        /**
+         * Create a new product and show a pop-up window about the successful creation.
+         *
+         * @listens submit
+         *
+         * @param {Event} event the DOM event object.
+         *
+         * @private
+         */
+        productsPopupForm.addEventListener("submit", async function(event){
+            event.preventDefault();
+            let newProduct = {
+                Name: document.querySelector(".products-popup__name").value,
+                Price: Number(document.querySelector(".products-popup__price").value),
+                Photo: 'photo of product',
+                Specs: document.querySelector(".products-popup__specs").value,
+                Rating: Number(document.querySelector(".products-popup__rating").value),
+                SupplierInfo: document.querySelector(".products-popup__info").value,
+                MadeIn: document.querySelector(".products-popup__origin").value,
+                ProductionCompanyName: document.querySelector(".products-popup__company-name").value,
+                Status: document.querySelector(".products-popup__status").value.toUpperCase(),
+                StoreId:  Number(`${currentStore.id}`)
+            };
+            const formInputs = this.querySelectorAll('input');
+            const isValid = view.validateRequiredFields(formInputs);
+        
+            if(isValid){
+                model.addProductApi(+currentStore.id, newProduct)
+                .then(()=>model.getProductsApi(+currentStore.id))
+                .then(products => {
+                    view.renderTableBody(products);
+                    view.getCountOfProducts(products);
+                })
+                productsPopup.style.display = "none";
+                event.target.reset();
+            }else{
+                errorMsg.classList.add("is-visible")
+            }
+        });
+
+        /**
+         * Show pop-up window with error.
+         *
+         * @listens click
+         *
+         * @private
+         */
+        errorMsgButton.addEventListener("click", function() {
+            errorMsg.classList.remove("is-visible");
+        })
+
+        /**
+         * Show a pop-up window to delete the selected store.
+         *
+         * @listens click
+         *
+         * @private
+         */
+        detailsFooterButtonDelete.addEventListener("click", function() {
+            productsPopupDeleteShop.style.display = "block";
+        });
+        
+        /**
+         * Hide a pop-up window to delete the selected store.
+         *
+         * @listens click
+         *
+         * @private
+         */
+        deleteShopCancelBtn.addEventListener("click", function() {
+            productsPopupDeleteShop.style.display = "none";
+        });
+        
+        /**
+         * Show a pop-up window to remove the product from the selected store.
+         *
+         * @listens click
+         *
+         * @param {Event} event the DOM event object.
+         *
+         * @private
+         */
+        document.addEventListener("click", (event)=> {
+            if (event.target.className === 'product-button__delete') {
+                currentProduct = event.target.closest("div");  
+                popupDeleteProduct.classList.remove("is-hidden");
+                popupDeleteProduct.classList.add("is-visible");
+            };
+        });
+
+        /**
+         * Hide a pop-up window to delete the selected product.
+         *
+         * @listens click
+         *
+         * @private
+         */
+        deleteProductCancelBtn.addEventListener("click", function() {
+            popupDeleteProduct.classList.remove("is-visible");
+        });
+
+        /**
+         * Fill out the form to edit a product with information about the selected product.
+         *
+         * @listens click
+         *
+         * @param {Event} event the DOM event object.
+         *
+         * @private
+         */
+        document.addEventListener("click", async function (event) {
+            if (event.target.className === 'product-button__edit') {
+                currentProduct = event.target.closest("div"); 
+                model.getProductApi(+currentProduct.id)
+                .then(product => {
+                    document.querySelector(".product-popup__edit-product").classList.add("is-visible");
+                    document.querySelector(".edit-product__name").value = product.Name;
+                    document.querySelector(".edit-product__price").value = +product.Price;
+                    document.querySelector(".edit-product__specs").value = product.Specs;
+                    document.querySelector(".edit-product__rating").value = +product.Rating;
+                    document.querySelector(".edit-product__info").value = product.SupplierInfo;
+                    document.querySelector(".edit-product__origin").value = product.MadeIn;
+                    document.querySelector(".edit-product__company-name").value = product.ProductionCompanyName;
+                })
+            };
+        });
+        
+        /**
+         * Hide a pop-up window to edit the selected product.
+         *
+         * @listens click
+         *
+         * @private
+         */
+        editProductCancel.addEventListener("click", function(){
+            editProductPopup.classList.remove("is-visible");
+        })
+        
+        /**
+         * Save new data for selected product and update the product list.
+         *
+         * @listens submit
+         *
+         * @param {Event} event the DOM event object.
+         *
+         * @private
+         */
+        editProductForm.addEventListener("submit", async function(event){
+            event.preventDefault();
+
+            const editProduct = {
+                Name: document.querySelector(".edit-product__name").value,
+                Price: Number(document.querySelector(".edit-product__price").value),
+                Photo: 'photo of product',
+                Specs: document.querySelector(".edit-product__specs").value,
+                Rating: Number(document.querySelector(".edit-product__rating").value),
+                SupplierInfo: document.querySelector(".edit-product__info").value,
+                MadeIn: document.querySelector(".edit-product__origin").value,
+                ProductionCompanyName: document.querySelector(".edit-product__company-name").value,
+                Status: document.querySelector(".products-popup__status").value.toUpperCase(),
+                StoreId:  Number(`${currentStore.id}`)
+            };
+
+            const formInputs = editProductForm.querySelectorAll('input');
+            const isValid = view.validateRequiredFields(formInputs);
+
+            if (isValid) {
+                model.editProduct(+currentProduct.id,editProduct)
+                .then(()=> model.getProductsApi(+currentStore.id))
+                .then(products => {
+                    view.renderTableBody(products);
+                })
+                editProductPopup.classList.remove("is-visible");
+                event.target.reset();
+                productPopupEditSuccessful.classList.add("is-visible");
+                setTimeout(function() {
+                    productPopupEditSuccessful.classList.remove("is-visible")
+                }, 3000);
+            }else{
+                errorMsg.classList.add("is-visible");
+            }
+            
+        });
+
+        /**
+         * Adjust store list header hiding when scrolling.
+         *
+         * @listens scroll
+         *
+         * @private
+         */
+        storesList.addEventListener("scroll", function() {
+            const scrollHeightToShow = 70;
+            const buttonDown = document.querySelector(".collapse-section__down");
+        
+            if (storesList.scrollTop > scrollHeightToShow || storesList.scrollTop > scrollHeightToShow) {
+                buttonDown.style.display = "block";
+            } else {
+                buttonDown.style.display = "none";
+            };
+        });
+        
+        /**
+         * Adjust store details header hiding when scrolling.
+         *
+         * @listens scroll
+         *
+         * @private
+         */
+        storeDetails.addEventListener("scroll", function() {
+            const scrollHeightToShowDetails = 90;
+            const buttonDownDetails = document.querySelector(".collapse-details-section__down");
+        
+            if (storeDetails.scrollTop > scrollHeightToShowDetails || storeDetails.scrollTop > scrollHeightToShowDetails) {
+                buttonDownDetails.style.display = "block";
+            } else {
+                buttonDownDetails.style.display = "none";
+            };
+        });
+
+        /**
+         * Search for a suitable store using the entered string by clicking on the search icon.
+         *
+         * @listens click
+         *
+         * @private
+         */
+        storeLoupe.addEventListener("click", () => {
+            model.searchStore(storesinput.value)
+            .then(response => view.renderStores(response))
+        });
+        
+        /**
+         * Search for a suitable product using the entered string by clicking on the search icon.
+         *
+         * @listens click
+         *
+         * @private
+         */
+        productLoupe.addEventListener("click", () => {
+            model.searchProducts(ProductInput.value, +currentStore.id)
+            .then(response => view.renderTableBody(response));
+        });
+        
+        /**
+         * Refresh the list of stores by clicking on the refresh icon.
+         *
+         * @listens click
+         *
+         * @private
+         */
+        refreshStores.addEventListener("click", () => model.getStoresApi().then(stores => view.renderStores(stores)));
+        
+        /**
+         * Сlear input in the store searchbar by clicking on the clear field icon.
+         *
+         * @listens click
+         *
+         * @private
+         */
+        clearInput.addEventListener("click", () => {
+            model.getStoresApi()
+            .then(stores => {
+                storesinput.value = '';
+                clearInput.classList.add("js-hidden")
+                view.renderStores(stores);
+            });
+        });
+        
+        storesinput.addEventListener("input", () => {
+            refreshStores.classList.add("js-hidden");
+            storeLoupe.classList.add("input-button__search-active");
+            clearInput.classList.remove("js-hidden");
+        })
+
+        /**
+         * Сlear input in the products searchbar by clicking on the clear field icon.
+         *
+         * @listens click
+         *
+         * @private
+         */
+        clearProductInput.addEventListener("click", () => {
+            model.getProductsApi(+currentStore.id)
+            .then(response => {
+                view.renderTableBody(response);
+                ProductInput.value = '';
+                clearProductInput.style.display = "none";
+                productLoupe.classList.remove("details-body__search-active");
+                productLoupe.classList.add("details-body__input-search");
+            })
+        });
+        
+        ProductInput.addEventListener("input", () => {
+            clearProductInput.style.display = "block";
+            productLoupe.classList.add("details-body__search-active");
+        });
+
+        /**
+        * Sort products by selected params
+        * @async
+        *         
+        * @param {Object} target is the sort button clicked.
+        * @param {Object} products is products for sorting.
+        * 
+        * @public
+        */
+        this.sortController = async function(target, products){
+            const tableTh = target.closest("th");
+            const sortField = tableTh.dataset.sort;
+            if(sortField){
+                switch(sortField){
+                    case "Price":
+                    case "Rating":
+                        if(target.dataset.direction === "up"){
+                            target.dataset.direction = "down";
+                            products.sort((a,b)=>a[sortField] > b[sortField] ? -1: 1);
+                        }else{
+                            target.dataset.direction = "up";
+                            products.sort((a,b)=>a[sortField] > b[sortField] ? 1: -1);
+                        };
+                        break;
+                    case "Country of origin": 
+                        if(target.dataset.direction === "up"){
+                            target.dataset.direction = "down";
+                            products.sort((a,b)=>b["MadeIn"].localeCompare(a["MadeIn"]), "en");
+                        }else{
+                            target.dataset.direction = "up";
+                            products.sort((a,b)=>a["MadeIn"].localeCompare(b["MadeIn"]), "en");
+                        };
+                        break;
+                    case "Name":
+                    case "Specs":
+                    case "SupplierInfo":
+                        if(target.dataset.direction === "up"){
+                            target.dataset.direction = "down";
+                            products.sort((a,b)=>b[sortField].localeCompare(a[sortField]), "en");
+                        }else{
+                            target.dataset.direction = "up";
+                            products.sort((a,b)=>a[sortField].localeCompare(b[sortField]), "en");
+                        };
+                        break;
+                    case "Prod.Company":
+                        if(target.dataset.direction === "up"){
+                            target.dataset.direction = "down";
+                            products.sort((a,b)=>b["ProductionCompanyName"].localeCompare(a["ProductionCompanyName"]), "en");
+                        }else{
+                            target.dataset.direction = "up";
+                            products.sort((a,b)=>a["ProductionCompanyName"].localeCompare(b["ProductionCompanyName"]), "en");
+                        };
+                    };
+                    model.getProductsApi(+currentStore.id)
+                    .then((products) => view.renderTableBody(products));
+                };
+        };
+
+        /**
+         * Сhange the sort icon and call a function to sort the selected column.
+         *
+         * @listens click
+         *
+         * @param {Event} event the DOM event object.
+         *
+         * @private
+         */
+        document.addEventListener("click", (event)=>{
+        model.getProductsApi(+currentStore.id)
+        .then(products =>{
+            if (event.target.className === "details-body__sort-button"){
+                event.target.classList.remove("details-body__sort-button");
+                event.target.classList.add("details-body__sort-up");
+                this.sortController(event.target,products).then();
+            }else if (event.target.className === "details-body__sort-up"){
+                event.target.classList.remove("details-body__sort-up");
+                event.target.classList.add("details-body__sort-down");
+                this.sortController(event.target,products).then();
+            }else if(event.target.className === "details-body__sort-down"){
+                event.target.classList.remove("details-body__sort-down");
+                event.target.classList.add("details-body__sort-up");
+                this.sortController(event.target,products).then();
+            };
+        })
+        });
+
+    };
+
+    (new Controller(new View(), new Model())).init();
+});

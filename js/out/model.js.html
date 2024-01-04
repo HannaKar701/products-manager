@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: model.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: model.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * Model class. Knows everything about API endpoint and data structure. Can format/map data to any structure.
+ *
+ * @constructor
+ */     
+function Model() {
+
+    const storesListBody = document.querySelector(".stores-list__body");
+    const createStoreForm = document.querySelector('.store-popup__form');
+
+    /**
+    * URL template for getting the stores from the server.
+    * @type {string}
+    *
+    */
+    const API_STORES = "http://localhost:3000/api/Stores/";
+
+    /**
+    * URL template for getting the products from the server.
+    * @type {string}
+    *
+    */
+    const API_PRODUCTS = "http://localhost:3000/api/Products/";
+    
+    /**
+     * Get the stores from the server by url.
+     *
+     * @returns {Object} with stores.
+     *
+     * @public
+     * @async
+     */
+    this.getStoresApi = async function() {
+        const response = await fetch(API_STORES);
+        return await response.json();
+    }
+
+    /**
+     * Get the store from the server by id.
+     *
+     * @param {number} storeId the store id.
+     * 
+     * @returns {Object} with the store.
+     *
+     * @public
+     * @async
+     */
+    this.getStoreById = async function (storeId) {
+        const url = `${API_STORES}${storeId}`;
+        
+        const response = await fetch(url);
+        return await response.json();
+    }
+
+    /**
+     * Get the products of the selected store from the server by storeid and filtered it by product status.
+     *
+     * @param {number} storeId the store id.
+     * @param {string} storeStatus the store status, default value = "all".
+     * 
+     * @returns {Object} with the array of products.
+     *
+     * @public
+     * @async
+     */
+    this.getProductsApi = async function (storeId, storeStatus = "all") {
+
+        if (storeStatus == "all") {
+            const url = `${API_STORES}${storeId}/rel_Products`;
+
+            const response = await fetch(url);
+            return await response.json();
+        } else {
+            const url = `${API_PRODUCTS}?filter={"where": {"and": [{"Status": "${storeStatus}"},{"StoreId": "${storeId}"}]}}`;
+
+            const response = await fetch(url);
+            return await response.json();
+        }
+    }
+
+    /**
+    * Get the products info of the selected product from the server by product id value.
+    *
+    * @param {number} productId the product id.
+    * 
+    * @returns {Object} with product information.
+    *
+    * @public
+    * @async
+    */
+    this.getProductApi = async function(productId) {
+        const response = await fetch(`${API_PRODUCTS}${productId}`);
+        const product = await response.json();
+        return product;
+    }
+
+    /**
+    * Get products depending on the section from the server by product id value and product status.
+    *
+    * @param {number} productId the product id.
+    * @param {string} value the product status.
+    * 
+    * @returns {Object} with product information.
+    *
+    * @public
+    * @async
+    */
+    this.getProductStatusApi = async function(productId, value){
+        const response = await fetch(`${API_STORES}${productId}/rel_Products?filter={"where":{"Status":"${value}"}}`);
+        const filteredProducts = await response.json();
+        return filteredProducts;
+    };
+
+    /**
+    * Delete the store from stores list
+    * @async
+    * @param {number} activeStoreId the store id.
+    *
+    * @public
+    */
+    this.deleteStore = async function(activeStoreId) {
+        return await fetch(`${API_STORES}${activeStoreId}`, {
+            method: "DELETE"
+        })
+    }
+
+    /**
+    * Delete all products from products list
+    * @async
+    * @param {number} activeStoreId the store id.
+    *
+    * @public
+    */
+    this.deleteStoreProducts = async function(activeStoreId) {
+        return await fetch(`${API_STORES}${activeStoreId}/rel_Products`, {
+            method: "DELETE"
+        })
+    }
+
+    /**
+    * Delete the product from products list
+    * @async
+    * @param {number} productId the product id.
+    *
+    * @public
+    */
+    this.deleteStoreProduct = async function(productId) {
+        return await fetch(`${API_PRODUCTS}${productId}`, {
+            method: "DELETE"
+        })
+    }
+
+    /**
+    * Search the store by input text
+    * @async
+    * @param {string} input is the seatch input value
+    *         
+    * @returns {Object} with all stores that matches with input in name, address or floor area.
+    *
+    * @public
+    */
+    this.searchStore = async function (input) {
+        storesListBody.innerHTML = "";
+
+        let url = `http://localhost:3000/api/Stores?filter={"where":{"or":[{"Name":{"ilike":"${input}"}},{"Address":{"ilike":"${input}"}},{"FloorArea":{"ilike":"${input}"}}]}}`;
+        
+        let response = await fetch(url);
+        
+        if (response.ok) {
+            let json = await response.json();
+
+            if (json.length > 0) {
+                storesListBody.innerHTML = ""
+                return json;
+            } else {
+                storesListBody.innerHTML = `
+                    &lt;li class="sidebar-list__search-error">
+                        Your search did not return any results.
+                    &lt;/li>`
+            };  
+        };
+    };
+
+    /**
+    * Search the product by input text
+    * @async
+    * @param {string} input is the seatch input value
+    * @param {number} activeStoreId is the selected store id
+    *         
+    * @returns {Object} with all stores that matches with input in name, address or floor area.
+    *
+    * @public
+    */
+    this.searchProducts = async function (input, activeStoreId) {
+        let url = `http://localhost:3000/api/Products?filter={"where":{"or":[{"Name":{"ilike":"${input}"}},{"Price":{"ilike":"${input}"}},{"Specs":{"ilike":"${input}"}},{"SupplierInfo":{"ilike":"${input}"}},{"MadeIn":{"ilike":"${input}"}},{"ProductionCompanyName":{"ilike":"${input}"}}],"StoreId":"${activeStoreId}"},"order":"Specs Asc"}`;
+        
+        let response = await fetch(url);
+        
+        if (response.ok) {
+            let json = await response.json();
+
+            if (json.length > 0) {
+                detailsTableBody.innerHTML = "";
+                return json;
+            } else {
+                detailsTableBody.innerHTML = `
+                    &lt;li class="sidebar-list__search-error">
+                        Your search did not return any results.
+                    &lt;/li>`
+            };  
+        };
+    };
+
+    /**
+    * Create a new store with the entering params
+    * @async
+    *         
+    * @returns {Object} a new store
+    *
+    * @public
+    */
+    this.addStoreApi = async function() {
+        const   Name = createStoreForm.querySelector(".store-popup__name").value,
+                Email = createStoreForm.querySelector(".store-popup__email").value,
+                PhoneNumber = createStoreForm.querySelector(".store-popup__phone").value,
+                Address = createStoreForm.querySelector(".store-popup__address").value,
+                Established = createStoreForm.querySelector(".store-popup__date").value,
+                FloorArea = createStoreForm.querySelector(".store-popup__square").value;
+
+        const store = {Name, Email, PhoneNumber, Address, Established, FloorArea};
+
+        createStoreForm.reset();
+
+        return await fetch(API_STORES, {
+            method: "POST",
+            headers: {
+                "Content-type": "application/json"
+            },
+            body: JSON.stringify(store)
+        })
+    }
+
+    /**
+    * Create a new product with the entering params
+    * @async
+    *         
+    * @param {number} activeStoreId is the selected store id
+    * @param {Object} object is a new product object
+    * 
+    * @returns {Object} a new product
+    *
+    * @public
+    */
+    this.addProductApi = async function(activeStoreId, object) {
+        return await fetch(`${API_STORES}${activeStoreId}/rel_Products`, {
+            method: "POST",
+            headers: {
+                "Content-type": "application/json"
+            },
+            body: JSON.stringify(object)
+        })
+    }
+
+    /**
+    * Edit information about concrete product
+    * @async
+    *         
+    * @param {number} activeProductId is thw selected product id
+    * @param {Object} obj is the modified product object
+    * 
+    * @returns {Object} the product with new params
+    *
+    * @public
+    */
+    this.editProduct = async function (activeProductId, obj) {
+        let response = await fetch(`http://localhost:3000/api/Products/${activeProductId}`, {
+            method: "PUT",
+            headers: {"Content-Type": "application/json", 
+            "Accept": "application/json"},
+            body: JSON.stringify(obj),
+        });
+        let data = await response.json();
+        return data;
+    }
+
+    /**
+    * Filter products of the selected store by status
+    * @async
+    *         
+    * @param {String} activeListItem is the selected product status
+    * @param {number} activeStoreId is the selected store is
+    * 
+    * @returns {Object} with all products which have selected product status
+    *
+    * @public
+    */
+    this.filterProducts = async function (activeListItem, activeStoreId) {
+        const products = await this.getProducts(activeStoreId, activeListItem.id);
+        return await products;
+    }
+
+    /**
+    * Delete selected store from the server database
+    * @async
+    *         
+    * @param {String} activeStoreId is the selected store id
+    * 
+    * @public
+    */
+    this.deleteStore = async function(activeStoreId) {
+        return await fetch(`${API_STORES}${activeStoreId}`, {
+            method: "DELETE"
+        });
+    }
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Controller.html">Controller</a></li><li><a href="Model.html">Model</a></li><li><a href="View.html">View</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Thu Jan 04 2024 11:31:52 GMT+0300 (Moscow Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

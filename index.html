@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="index.css">
-	<script defer type="module" src="js/index.js"></script>
+	<script src="js/controller.js"></script>
+	<script src="js/model.js"></script>
+	<script src="js/view.js"></script>
     <title>Retail CRM software</title>
 </head>
 
@@ -13,11 +15,13 @@
 		<aside class="stores-list">
 			<header class="stores-list__header">
 				<h1 class="stores-list__header-title">Stores list</h1>
-				<div class="stores-list__header-searchbar" id="searchbar">
+			</header>
+			<div class="stores-list__searchbar-wrapper">
+				<div class="stores-list__header-searchbar">
 					<input class="stores-list__header-input" type="text" placeholder="Search">
 					<img class="input-button__search" src="img/search.svg" alt="search">
 					<img class="input-button__refresh" src="img/refresh.svg" alt="refresh">
-					<img class="input-button__clear" src="img/clear-input.svg" alt="clear input">
+					<img class="input-button__clear js-hidden" src="img/clear-input.svg" alt="clear input">
 				</div>
 				<div class="stores-list__collapse-section">
 					<button class="stores-list__collapse-button">
@@ -27,17 +31,25 @@
 						<img src="img/pin.svg" alt="pin">
 					</button>
 				</div>
-			</header>
-			<div>
-				<ul class="stores-list__body"></ul>
+				<div class="collapse-section__down">
+					<div class="stores-list__collapse-section">
+						<button class="stores-list__collapse-button">
+							<img src="img/arrow-up.svg" alt="arrow-up">
+						</button>
+					</div>
+				</div>
 			</div>
+				<ul class="stores-list__body"></ul>
 		</aside>
 
 		<div class="details js-hidden">
 			<header class="details-header">
 				<h1 class="details-header__title">Store Details</h1>
+			</header>
 
-				<div class="details-header__info">
+			<div class="details-body">
+				<div class="details-body__info-wrapper">
+					<div class="details-header__info">
 					<div class="details-header__info-column">
 						<p><b>Email: </b><span class="details-header__email"></span></p>
 						<p><b>Phone number: </b><span class="details-header__phone"></span></p>
@@ -47,9 +59,9 @@
 						<p><b>Established date: </b><span class="details-header__date"></span></p>
 						<p><b>Floor Area: </b><span class="details-header__square"></span></p>
 					</div>
-				</div>
+					</div>
 
-				<div class="details-header__buttons">
+					<div class="details-header__buttons">
 					<input type="radio" id="all-icon" name="store-tabs" checked>
 					<label class="details-header__button category-all" for="all-icon">
 						<span class="details-header__count-all">100</span>
@@ -82,10 +94,16 @@
 						<img src="img/pin.svg" alt="pin">
 					</button>
 				</div>
+				<div class="collapse-details-section__down">
+					<div class="stores-list__collapse-section">
+						<button class="stores-list__collapse-button">
+							<img src="img/arrow-up.svg" alt="arrow-up">
+						</button>
+					</div>
 				</div>
-			</header>
+					</div>
+				</div>
 
-			<div class="details-body">
 				<table class="details-body__table">
 					<caption class="details-body__title">Products
 						<div class="details-body__searchbar" id="product-searchbar">
@@ -130,6 +148,18 @@
 			<p>The product has been successfully deleted!</p>
 		</div>
 
+		<div class="product-popup__edit-successful">
+			<p>The product has been successfully updated!</p>
+		</div>
+
+		<div class="error-msg">
+			<div class="error-msg__body">
+				<h2>Error</h2>
+				<p>Please, fix validation errors first!</p>
+				<button class="error-msg__button">Close</button>
+			</div>
+		</div>
+
 		<footer class="container-footer">
 			<div class="stores-list__footer">
 				<button class="stores-list__footer-button"><span class="stores-list__footer-icon"></span>Create</button>
@@ -138,25 +168,25 @@
 			<div class="store-popup">
 				<div class="store-popup__content">
 					<h2>Create new store</h2>
-					<form id="store-popup__form">
+					<form class="store-popup__form">
 						<div class="store-popup__inputs">
 							<label for="name">Name:</label>
-							<input type="text" id="store-popup__name" name="name" placeholder="Enter name" required>
+							<input type="text" class="store-popup__name" name="name" placeholder="Enter name">
 							
 							<label for="email">Email:</label>
-							<input type="email" id="store-popup__email" name="email" placeholder="Enter e-mail" required>
+							<input type="email" class="store-popup__email" name="email" placeholder="Enter e-mail">
 	
 							<label for="phone">Phone Number:</label>
-							<input type="tel" id="store-popup__phone" name="phone" placeholder="Enter phone number" required>
+							<input type="tel" class="store-popup__phone" name="phone" placeholder="Enter phone number">
 	
 							<label for="address">Address:</label>
-							<input type="text" id="store-popup__address" name="address" placeholder="Enter address" required>
+							<input type="text" class="store-popup__address" name="address" placeholder="Enter address">
 	
 							<label for="date">Established:</label>
-							<input type="date" id="store-popup__date" name="date" placeholder="MMM d.y." required>
+							<input type="date" class="store-popup__date" name="date" placeholder="MMM d.y.">
 	
 							<label for="store">Floor Area:</label>
-							<input type="text" id="store-popup__square" name="store" placeholder="Enter floor area (in sq.m)" required>
+							<input type="text" class="store-popup__square" name="store" placeholder="Enter floor area (in sq.m)">
 						</div>
 						<div class="store-popup__footer">
 							<button class="store-popup__button-create" type="submit">Create</button>
@@ -173,35 +203,35 @@
 
 				<div class="products-popup">
 					<div class="products-popup__content">
-						<h2>Create new store</h2>
-						<form id="products-popup__form">
+						<h2>Create new product</h2>
+						<form class="products-popup__form">
 							<div class="products-popup__inputs">
 								<label for="name">Name:</label>
-								<input type="text" id="products-popup__name" name="name" placeholder="Enter name" required>
+								<input type="text" class="products-popup__name" name="name" placeholder="Enter name" >
 								
 								<label for="price">Price:</label>
 								<div class="products-popup__input-price">
-									<input type="text" id="products-popup__price" name="price" placeholder="Enter price" required>
+									<input type="text" class="products-popup__price" name="price" placeholder="Enter price">
 									<span>USA</span>
 								</div>
 								
 								<label for="specs">Specs:</label>
-								<input type="text" id="products-popup__specs" name="phone" placeholder="Enter product specs" required>
+								<input type="text" class="products-popup__specs" name="phone" placeholder="Enter product specs">
 		
 								<label for="address">Rating:</label>
-								<input type="text" id="products-popup__rating" name="address" placeholder="Enter rating 1..5" required>
+								<input type="text" class="products-popup__rating" name="address" placeholder="Enter rating 1..5">
 		
 								<label for="supplier_info">Supplier info:</label>
-								<input type="text" id="products-popup__info" name="supplier_info" placeholder="Enter supplier info" required>
+								<input type="text" class="products-popup__info" name="supplier_info" placeholder="Enter supplier info">
 		
 								<label for="origin">Made in:</label>
-								<input type="text" id="products-popup__origin" name="origin" placeholder="Enter origin country" required>
+								<input type="text" class="products-popup__origin" name="origin" placeholder="Enter origin country">
 
 								<label for="company-name">Production company name:</label>
-								<input type="text" id="products-popup__company-name" name="company-name" placeholder="Enter manufacturer name" required>
+								<input type="text" class="products-popup__company-name" name="company-name" placeholder="Enter manufacturer name">
 
 								<label for="status">Status:</label>
-								<select class="select" id="products-popup__status" name="status" required>
+								<select class="select products-popup__status" name="status">
 									<option selected value = "Ok">Ok</option>
 									<option value="Storage">Storage</option>
 									<option value="out_of_stock">Out of Stock</option>
@@ -210,6 +240,50 @@
 							<div class="products-popup__footer">
 								<button class="products-popup__button-create" type="submit">Create</button>
 								<button class="products-popup__button-cancel" type="reset">Canсel</button>
+							</div>
+						</form>
+					</div>
+				</div>
+
+				<div class="product-popup__edit-product">
+					<div class="edit-product__content">
+						<h2>Edit product</h2>
+						<form class="edit-product__form">
+							<div class="edit-product__inputs">
+								<label for="name">Name:</label>
+								<input type="text" class="edit-product__name" name="name" placeholder="Enter name" >
+								
+								<label for="price">Price:</label>
+								<div class="edit-product__input-price">
+									<input type="text" class="edit-product__price" name="price" placeholder="Enter price" >
+									<span>USA</span>
+								</div>
+								
+								<label for="specs">Specs:</label>
+								<input type="text" class="edit-product__specs" name="phone" placeholder="Enter product specs" >
+		
+								<label for="address">Rating:</label>
+								<input type="text" class="edit-product__rating" name="address" placeholder="Enter rating 1..5" >
+		
+								<label for="supplier_info">Supplier info:</label>
+								<input type="text" class="edit-product__info" name="supplier_info" placeholder="Enter supplier info" >
+		
+								<label for="origin">Made in:</label>
+								<input type="text" class="edit-product__origin" name="origin" placeholder="Enter origin country" >
+
+								<label for="company-name">Production company name:</label>
+								<input type="text" class="edit-product__company-name" name="company-name" placeholder="Enter manufacturer name" >
+
+								<label for="status">Status:</label>
+								<select class="select edit-product__status" name="status" >
+									<option class="edit-option-js" selected value = "Ok">Ok</option>
+									<option class="edit-option-js" value="Storage">Storage</option>
+									<option class="edit-option-js" value="out_of_stock">Out of Stock</option>
+								   </select>
+							</div>
+							<div class="edit-product__footer">
+								<button class="edit-product__button-edit" type="submit">Save</button>
+								<button class="edit-product__button-cancel" type="reset">Canсel</button>
 							</div>
 						</form>
 					</div>
