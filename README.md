@@ -1,4 +1,4 @@
-# Inventory Management App
+# Stores and Products Management App
 
 This project is a web application developed using Vanilla JS, HTML, and CSS. The application is designed for creating, editing, deleting, and tracking products through an API.
 
